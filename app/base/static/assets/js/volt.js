@@ -164,6 +164,23 @@ d.addEventListener("DOMContentLoaded", function(event) {
     //Chartist
 
     if(d.querySelector('.ct-chart-sales-value')) {
+        // var label = [];
+        // var seriesData = [];
+        // var xhReq = new XMLHttpRequest();
+        // xhReq.open("GET", "/predictTomorrow", false);
+        // xhReq.send(null);
+        // var serverResponse = JSON.parse(xhReq.responseText);
+
+        // //console.log(serverResponse); // Shows "15"
+        // var i;
+        // for (i = 0; i < serverResponse.length; i++) {
+        //     data = serverResponse[i];
+        //     label.push(data[0]);
+        //     seriesData.push(data[1]);
+        // }
+        // console.log(label);
+        // console.log(seriesData);
+
         //Chart 5
           new Chartist.Line('.ct-chart-sales-value', {
             labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -171,40 +188,129 @@ d.addEventListener("DOMContentLoaded", function(event) {
                 [0, 10, 30, 40, 80, 60, 100]
             ]
           }, {
+            seriesBarDistance : 10,
+            reverseData: true,
             low: 0,
+            horizontalBars: true,
             showArea: true,
             fullWidth: true,
             plugins: [
               Chartist.plugins.tooltip()
             ],
             axisX: {
-                // On the x-axis start means top and end means bottom
-                position: 'end',
-                showGrid: true
+            //     // On the x-axis start means top and end means bottom
+                 position: 'end',
+                 showGrid: true
             },
             axisY: {
                 // On the y-axis start means left and end means right
                 showGrid: false,
                 showLabel: false,
+                offset: 70,
                 labelInterpolationFnc: function(value) {
-                    return '$' + (value / 1) + 'k';
+                    return value;
+                    //return '$' + (value / 1) + 'k';
                 }
             }
         });
     }
 
     if(d.querySelector('.ct-chart-ranking')) {
+
+        var label = [];
+        var seriesData = [];
+        var markers = [];
+        var xhReq = new XMLHttpRequest();
+        xhReq.open("GET", "/predictTomorrow", false);
+        xhReq.send(null);
+        var serverResponse = JSON.parse(xhReq.responseText);
+
+        //console.log(serverResponse); // Shows "15"
+        var i;
+        for (i = 0; i < serverResponse.length; i++) {
+            data = serverResponse[i];
+            label.push(data.stateAbbreviation);
+            seriesData.push(data.predication);
+             var lats = data.latitude;
+            var long = data.longitude;
+            var marker = new H.map.Marker({ lat: lats, lng: long });
+            markers.push(marker);
+        }
+        // Initialize the platform object:
+        var platform = new H.service.Platform({
+            'apikey': 'MaOUjyqT2kUy20Up9f3bRMXAGmrLBSTPKnW2ujHfjTg'
+        });
+
+        var defaultLayers = platform.createDefaultLayers();
+    
+            //Step 2: initialize a map - this map is centered over Europe
+            var map = new H.Map(document.getElementById('mapContainer'),
+                defaultLayers.vector.normal.map,{
+                center: {lat:36.2491883, lng:-113.7038463},
+                zoom: 4,
+                pixelRatio: window.devicePixelRatio || 1
+            });
+
+            // add a resize listener to make sure that the map occupies the whole container
+            window.addEventListener('resize', () => map.getViewPort().resize());
+
+            //Step 3: make the map interactive
+            // MapEvents enables the event system
+            // Behavior implements default interactions for pan/zoom (also on mobile touch environments)
+            var behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+
+            // Create the default UI components
+            var ui = H.ui.UI.createDefault(map, defaultLayers);
+            
+            // Now use the map as required...
+            window.onload = function () {
+                var j;
+                for (j = 0; j < serverResponse.length; j++) {
+                    var datas = serverResponse[j];
+                    var lats = datas.latitude;
+                    var long = datas.longitude;
+                    var marker = new H.map.Marker({ lat: lats, lng: long });
+                    map.addObject(marker);                
+                }
+            }
+
+        // var data = {
+        //     labels: label,
+        //     series: [
+        //       seriesData
+        //     ]
+        //   };
+          
+        //   var options = {
+        //     seriesBarDistance: 10
+        //   };
+          
+        //   var responsiveOptions = [
+        //     ['screen and (max-width: 640px)', {
+        //       seriesBarDistance: 5,
+        //       axisX: {
+        //         labelInterpolationFnc: function (value) {
+        //             console.log(value);
+        //             return value[0];
+        //         }
+        //       }
+        //     }]
+        //   ];
+          
+        //   new Chartist.Bar('.ct-chart-ranking', data, options, responsiveOptions);
+
+
+
         var chart = new Chartist.Bar('.ct-chart-ranking', {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            labels: label,
             series: [
-              [1, 5, 2, 5, 4, 3],
-              [2, 3, 4, 8, 1, 2],
+              seriesData
             ]
-          }, {
+          },{
             low: 0,
             showArea: true,
             plugins: [
-              Chartist.plugins.tooltip()
+                Chartist.plugins.tooltip()
             ],
             axisX: {
                 // On the x-axis start means top and end means bottom
@@ -213,22 +319,8 @@ d.addEventListener("DOMContentLoaded", function(event) {
             axisY: {
                 // On the y-axis start means left and end means right
                 showGrid: false,
-                showLabel: false,
+                showLabel: true,
                 offset: 0
-            }
-            });
-          
-          chart.on('draw', function(data) {
-            if(data.type === 'line' || data.type === 'area') {
-              data.element.animate({
-                d: {
-                  begin: 2000 * data.index,
-                  dur: 2000,
-                  from: data.path.clone().scale(1, 0).translate(0, data.chartRect.height()).stringify(),
-                  to: data.path.clone().stringify(),
-                  easing: Chartist.Svg.Easing.easeOutQuint
-                }
-              });
             }
         });
     }
